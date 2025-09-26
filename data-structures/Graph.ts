@@ -1,25 +1,11 @@
-// TODO: implement a graph here
-// implement with adjacency list
-// implement with adjacency matrix...
-// both should implement the same interface
-// create some tests for these to ensure they behave correctly
-
-// what is the benefit of implementing both types of graph represenations...
-// I get practice implmenting them and could implement then on the fly...
-// how to do that OOP style?
-// have a base class that both things implement
-// for adjacency matrix... do you need to know the number of vertices before hand?
-// both graphs could accept a list of vertices to begin with...
-// then both could allocate the stuff they need to based on those vertices...
-
 export type Vertex = string;
 export type Edge = string;
 export type Edges = Array<Edge>;
 
 // TODO: directed graph vs undirected graph... worth creating different classes?
-interface Graph {
-  addEdge(vertexA: Vertex, vertexB: Vertex);
-  removeEdge(vertexA: Vertex, vertexB: Vertex);
+export interface Graph {
+  addEdge(vertexA: Vertex, vertexB: Vertex): void; // TODO: boolean to show success/failure
+  removeEdge(vertexA: Vertex, vertexB: Vertex): void;
   getEdges(vertex: Vertex): Edges | null;
   hasEdge(from: Vertex, to: Vertex): boolean;
 }
@@ -27,8 +13,10 @@ interface Graph {
 export class AdjacencyList implements Graph {
   table: Map<Vertex, Edges>;
 
-  constructor() {
+  constructor(vertices: Array<Vertex>) {
     this.table = new Map();
+
+    vertices.forEach((vertex) => this.table.set(vertex, new Array()));
   }
 
   addEdge(vertexA: Vertex, vertexB: Vertex) {
@@ -71,7 +59,7 @@ export class AdjacencyList implements Graph {
 export class AdjacencyMatrix implements Graph {
   vertices: Array<Vertex>;
   matrix: Array<Array<boolean>>;
-  vertexIndexTable: Record<Vertex, number>;
+  vertexIndexTable: Record<Vertex, number> = {};
 
   constructor(vertices: Array<Vertex>) {
     this.vertices = vertices;

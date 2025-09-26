@@ -1,46 +1,59 @@
-import { AdjacencyList } from "./Graph";
+import { describe, expect, it } from "vitest";
 
-// write these test to test both version of the graph...
-// the same exact tests, just with different classes used under the hood
+import { AdjacencyList, AdjacencyMatrix, Graph, Vertex } from "./Graph";
 
-describe("AdjacencyList", () => {
-  test("adds an undirected edge between two vertices", () => {
-    const adjList = new AdjacencyList();
-    const vertexA = "A";
-    const vertexB = "B";
+const graphImplementations: Record<string, (vertices: Array<Vertex>) => Graph> =
+  {
+    AdjacencyList: (vertices) => new AdjacencyList(vertices),
+    AdjacencyMatrix: (vertices) => new AdjacencyMatrix(vertices),
+  };
 
-    adjList.addEdge(vertexA, vertexB);
+Object.entries(graphImplementations).forEach(
+  ([implementationName, implementingClass]) => {
+    describe(implementationName, () => {
+      it("adds an edge (undirected) between two vertices", () => {
+        const vertexA = "A";
+        const vertexB = "B";
+        const vertices = [vertexA, vertexB];
 
-    expect(adjList.hasEdge(vertexA, vertexB)).toBeTrue();
-    expect(adjList.hasEdge(vertexB, vertexA)).toBeTrue();
-  });
+        const graph = implementingClass(vertices);
 
-  test("removes an undirected edge between two vertices", () => {
-    const adjList = new AdjacencyList();
-    const vertexA = "A";
-    const vertexB = "B";
+        graph.addEdge(vertexA, vertexB);
 
-    adjList.addEdge(vertexA, vertexB);
-    adjList.removeEdge(vertexA, vertexB);
+        expect(graph.hasEdge(vertexA, vertexB)).toBe(true);
+        expect(graph.hasEdge(vertexB, vertexA)).toBe(true);
+      });
 
-    expect(adjList.hasEdge(vertexA, vertexB)).toBeFalse();
-    expect(adjList.hasEdge(vertexB, vertexA)).toBeFalse();
-  });
+      it("removes the edge (undirected) between two vertices", () => {
+        const vertexA = "A";
+        const vertexB = "B";
+        const vertices = [vertexA, vertexB];
+        const graph = implementingClass(vertices);
 
-  test("returns a list of edges from a given vertex", () => {
-    const adjList = new AdjacencyList();
-    const vertexA = "A";
-    const vertexB = "B";
-    const vertexC = "C";
-    const vertexD = "D";
+        graph.addEdge(vertexA, vertexB);
+        graph.removeEdge(vertexA, vertexB);
 
-    adjList.addEdge(vertexA, vertexB);
-    adjList.addEdge(vertexA, vertexC);
-    adjList.addEdge(vertexA, vertexD);
-    adjList.removeEdge(vertexA, vertexD);
+        expect(graph.hasEdge(vertexA, vertexB)).toBe(false);
+        expect(graph.hasEdge(vertexB, vertexA)).toBe(false);
+      });
 
-    const edgesFromVertexA = adjList.getEdges(vertexA);
+      it("returns a list of edges leaving a given vertex", () => {
+        const vertexA = "A";
+        const vertexB = "B";
+        const vertexC = "C";
+        const vertexD = "D";
+        const vertices = [vertexA, vertexB, vertexC, vertexD];
+        const graph = implementingClass(vertices);
 
-    expect(edgesFromVertexA).toEqual([vertexB, vertexC]);
-  });
-});
+        graph.addEdge(vertexA, vertexB);
+        graph.addEdge(vertexA, vertexC);
+        graph.addEdge(vertexA, vertexD);
+        graph.removeEdge(vertexA, vertexD);
+
+        const edgesFromVertexA = graph.getEdges(vertexA);
+
+        expect(edgesFromVertexA).toEqual([vertexB, vertexC]);
+      });
+    });
+  }
+);
