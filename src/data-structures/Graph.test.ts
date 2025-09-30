@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import Vertex from "./Vertex";
+import { Vertex } from "./Vertex";
 import { AdjacencyList, AdjacencyMatrix, Graph } from "./Graph";
 
 const graphImplementations: Record<string, (vertices: Array<Vertex>) => Graph> =
@@ -11,54 +11,39 @@ const graphImplementations: Record<string, (vertices: Array<Vertex>) => Graph> =
 Object.entries(graphImplementations).forEach(
   ([implementationName, implementingClass]) => {
     describe(implementationName, () => {
-      it("adds an edge (undirected) between two vertices", () => {
-        const vertexA = new Vertex("A");
-        const vertexB = new Vertex("B");
-        const vertices = [vertexA, vertexB];
+      it("adds an undirected edge with provided weight between two vertices", () => {
+        const a: Vertex = [0, 0];
+        const b: Vertex = [1, 1];
+        const vertices = [a, b];
         const weight = 10;
 
         const graph = implementingClass(vertices);
 
-        graph.addEdge({ vertexA, vertexB, weight });
+        graph.addEdge(a, b, weight);
 
-        expect(graph.getNeighbors(vertexA)).toStrictEqual([vertexB]);
-        expect(graph.getNeighbors(vertexB)).toStrictEqual([vertexA]);
-        expect(graph.getEdgeWeight(vertexA, vertexB)).toBe(weight);
-        expect(graph.getEdgeWeight(vertexB, vertexA)).toBe(weight);
+        expect(graph.getNeighbors(a)).toStrictEqual([b]);
+        expect(graph.getNeighbors(b)).toStrictEqual([a]);
+        expect(graph.getEdgeWeight(a, b)).toBe(weight);
+        expect(graph.getEdgeWeight(b, a)).toBe(weight);
       });
 
-      it("removes the edge (undirected) between two vertices", () => {
-        const vertexA = new Vertex("A");
-        const vertexB = new Vertex("B");
-        const vertices = [vertexA, vertexB];
-        const graph = implementingClass(vertices);
-
-        graph.addEdge({ vertexA, vertexB, weight: 10 });
-        graph.removeEdge(vertexA, vertexB);
-
-        expect(graph.getNeighbors(vertexA)).toStrictEqual([]);
-        expect(graph.getNeighbors(vertexB)).toStrictEqual([]);
-      });
-
-      it("returns a list of vertices neighboring the given vertex", () => {
-        const vertexA = new Vertex("A");
-        const vertexB = new Vertex("B");
-        const vertexC = new Vertex("C");
-        const vertexD = new Vertex("D");
-        const graph = implementingClass([vertexA, vertexB, vertexC, vertexD]);
+      it("returns a list of vertices that neighbor the given vertex", () => {
+        const a: Vertex = [0, 0];
+        const b: Vertex = [1, 1];
+        const c: Vertex = [2, 2];
+        const d: Vertex = [3, 3];
+        const graph = implementingClass([a, b, c, d]);
         const weight = 1;
 
-        graph.addEdge({ vertexA, vertexB, weight });
-        graph.addEdge({ vertexA, vertexB: vertexC, weight });
-        graph.addEdge({ vertexA, vertexB: vertexD, weight });
-        graph.removeEdge(vertexA, vertexD);
+        graph.addEdge(a, b, weight);
+        graph.addEdge(a, c, weight);
 
-        const aNeighbors = graph.getNeighbors(vertexA);
+        const aNeighbors = graph.getNeighbors(a);
 
-        expect(aNeighbors).toEqual([vertexB, vertexC]);
-        expect(graph.getEdgeWeight(vertexA, vertexB)).toBe(weight);
-        expect(graph.getEdgeWeight(vertexA, vertexC)).toBe(weight);
-        expect(graph.getEdgeWeight(vertexA, vertexD)).toBe(Infinity);
+        expect(aNeighbors).toEqual([b, c]);
+        expect(graph.getEdgeWeight(a, b)).toBe(weight);
+        expect(graph.getEdgeWeight(a, c)).toBe(weight);
+        expect(graph.getEdgeWeight(a, d)).toBe(Infinity);
       });
     });
   }

@@ -1,121 +1,89 @@
 import Edge from "./Edge";
-import Vertex from "./Vertex";
 
 export type Edges = Array<Edge>;
+type Vertex = [number, number];
 
-// TODO: for now, undirected graph... later maybe a directed graph?
 export interface Graph {
-  vertices: Array<Vertex>;
-  addEdge({
-    vertexA,
-    vertexB,
-    weight,
-  }: {
-    vertexA: Vertex;
-    vertexB: Vertex;
-    weight: number;
-  }): void;
-  removeEdge(vertexA: Vertex, vertexB: Vertex): void;
-  getNeighbors(from: Vertex): Array<Vertex>;
-  getEdgeWeight(from: Vertex, to: Vertex): number;
+  getVertices(): Array<Vertex>;
+  addEdge(u: Vertex, v: Vertex, weight: number): void;
+  getNeighbors(u: Vertex): Array<Vertex>;
+  getEdgeWeight(u: Vertex, v: Vertex): number;
 }
 
+// TODO: should the edge be refactored? or is it useful as is?
+// Edge could be a tuple with three elements?
+// type Edge = [Vertex, Vertex, number];
+// why would an edge be this?
+
 export class AdjacencyList implements Graph {
-  public vertices: Array<Vertex>;
   private table: Map<Vertex, Edges>;
+  private vertices: Set<Vertex>;
 
   constructor(vertices: Array<Vertex>) {
-    this.vertices = vertices;
     this.table = new Map();
-    vertices.forEach((vertex) => this.table.set(vertex, new Array()));
+    this.vertices = new Set();
+    vertices.forEach((v) => this.vertices.add(v));
   }
 
-  addEdge({ vertexA, vertexB, weight }: Parameters<Graph["addEdge"]>[0]) {
-    if (!this.table.has(vertexA)) this.table.set(vertexA, new Array());
-    if (!this.table.has(vertexB)) this.table.set(vertexB, new Array());
-    this.table.get(vertexA)?.push(new Edge(vertexA, vertexB, weight));
-    this.table.get(vertexB)?.push(new Edge(vertexB, vertexA, weight));
+  getVertices(): Array<Vertex> {
+    return Array.from(this.vertices);
   }
 
-  removeEdge(vertexA: Vertex, vertexB: Vertex) {
-    if (this.table.has(vertexA))
-      this.table.set(
-        vertexA,
-        this.table.get(vertexA)?.filter((edge) => edge.to !== vertexB) ??
-          new Array()
-      );
-    if (this.table.has(vertexB))
-      this.table.set(
-        vertexB,
-        this.table.get(vertexB)?.filter((edge) => edge.to !== vertexA) ??
-          new Array()
-      );
+  addEdge(u: Vertex, v: Vertex, weight: number) {
+    if (!this.table.has(u)) this.table.set(u, new Array());
+    if (!this.table.has(v)) this.table.set(v, new Array());
+    this.table.get(u)?.push(new Edge(u, v, weight));
+    this.table.get(v)?.push(new Edge(v, u, weight));
   }
 
-  getNeighbors(from: Vertex): Array<Vertex> {
-    return this.table.get(from)?.map((edge) => edge.to) ?? [];
+  getNeighbors(u: Vertex): Array<Vertex> {
+    return this.table.get(u)?.map((edge) => edge.to) ?? [];
   }
 
-  getEdgeWeight(from: Vertex, to: Vertex): number {
-    const edges = this.table.get(from);
-    const edge = edges?.find((e) => e.to === to);
+  getEdgeWeight(u: Vertex, v: Vertex): number {
+    const edges = this.table.get(u);
+    const edge = edges?.find((e) => e.to === v);
     return edge ? edge.weight : Infinity;
   }
 }
 
 export class AdjacencyMatrix implements Graph {
-  public vertices: Array<Vertex>;
+  private vertices: Array<Vertex>;
   private matrix: Array<Array<number>>;
-  private vertexIndexTable: Record<Vertex["name"], number> = {};
+  private vertexIndexTable: Map<Vertex, number> = new Map();
 
   constructor(vertices: Array<Vertex>) {
     this.vertices = vertices;
 
-    const numberOfVertices = vertices.length;
-
-    this.matrix = Array.from({ length: numberOfVertices }).map(() =>
-      new Array(numberOfVertices).fill(Infinity)
+    this.matrix = Array.from({ length: this.vertices.length }).map(() =>
+      new Array(this.vertices.length).fill(Infinity)
     );
 
     vertices.forEach((vertex, index) => {
-      this.vertexIndexTable[vertex.name] = index;
+      this.vertexIndexTable.set(vertex, index);
     });
   }
 
-  addEdge({ vertexA, vertexB, weight }: Parameters<Graph["addEdge"]>[0]) {
-    if (
-      !(vertexA.name in this.vertexIndexTable) ||
-      !(vertexB.name in this.vertexIndexTable)
-    )
-      return;
-
-    const vertexAIndex = this.vertexIndexTable[vertexA.name];
-    const vertexBIndex = this.vertexIndexTable[vertexB.name];
-
-    this.matrix[vertexAIndex][vertexBIndex] = weight;
-    this.matrix[vertexBIndex][vertexAIndex] = weight;
+  getVertices(): Array<Vertex> {
+    return this.vertices;
   }
 
-  removeEdge(vertexA: Vertex, vertexB: Vertex) {
-    if (
-      !(vertexA.name in this.vertexIndexTable) ||
-      !(vertexB.name in this.vertexIndexTable)
-    )
-      return;
+  addEdge(u: Vertex, v: Vertex, weight: number) {
+    if (!this.vertexIndexTable.has(u) || !this.vertexIndexTable.has(v)) return;
 
-    const vertexAIndex = this.vertexIndexTable[vertexA.name];
-    const vertexBIndex = this.vertexIndexTable[vertexB.name];
+    const uIndex = this.vertexIndexTable.get(u) as number;
+    const vIndex = this.vertexIndexTable.get(v) as number;
 
-    this.matrix[vertexAIndex][vertexBIndex] = Infinity;
-    this.matrix[vertexBIndex][vertexAIndex] = Infinity;
+    this.matrix[uIndex][vIndex] = weight;
+    this.matrix[vIndex][uIndex] = weight;
   }
 
   getNeighbors(from: Vertex): Array<Vertex> {
-    if (!(from.name in this.vertexIndexTable)) return [];
+    if (!this.vertexIndexTable.has(from)) return [];
 
     const neighbors: Array<Vertex> = [];
 
-    const vertexIndex = this.vertexIndexTable[from.name];
+    const vertexIndex = this.vertexIndexTable.get(from) as number;
 
     this.matrix[vertexIndex].forEach((weight, index) => {
       if (weight < Infinity) neighbors.push(this.vertices[index]);
@@ -125,14 +93,11 @@ export class AdjacencyMatrix implements Graph {
   }
 
   getEdgeWeight(from: Vertex, to: Vertex): number {
-    if (
-      !(from.name in this.vertexIndexTable) ||
-      !(to.name in this.vertexIndexTable)
-    )
+    if (!this.vertexIndexTable.has(from) || !this.vertexIndexTable.has(from))
       return Infinity;
 
-    const fromIndex = this.vertexIndexTable[from.name];
-    const toIndex = this.vertexIndexTable[to.name];
+    const fromIndex = this.vertexIndexTable.get(from) as number;
+    const toIndex = this.vertexIndexTable.get(to) as number;
 
     return this.matrix[fromIndex][toIndex];
   }
