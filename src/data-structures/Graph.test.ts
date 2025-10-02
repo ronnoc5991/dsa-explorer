@@ -1,19 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { Vertex } from "./Vertex";
 import { AdjacencyList, AdjacencyMatrix, Graph } from "./Graph";
+import { VertexName, vertexPositionToName } from "./Vertex";
 
-const graphImplementations: Record<string, (vertices: Array<Vertex>) => Graph> =
-  {
-    AdjacencyList: (vertices) => new AdjacencyList(vertices),
-    AdjacencyMatrix: (vertices) => new AdjacencyMatrix(vertices),
-  };
+const graphImplementations: Record<
+  string,
+  (vertices: Array<VertexName>) => Graph
+> = {
+  AdjacencyList: (vertices) => new AdjacencyList(vertices),
+  AdjacencyMatrix: (vertices) => new AdjacencyMatrix(vertices),
+};
 
 Object.entries(graphImplementations).forEach(
   ([implementationName, implementingClass]) => {
     describe(implementationName, () => {
       it("adds an undirected edge with provided weight between two vertices", () => {
-        const a: Vertex = [0, 0];
-        const b: Vertex = [1, 1];
+        const a = vertexPositionToName({ x: 0, y: 0 });
+        const b = vertexPositionToName({ x: 1, y: 1 });
         const vertices = [a, b];
         const weight = 10;
 
@@ -28,10 +30,10 @@ Object.entries(graphImplementations).forEach(
       });
 
       it("returns a list of vertices that neighbor the given vertex", () => {
-        const a: Vertex = [0, 0];
-        const b: Vertex = [1, 1];
-        const c: Vertex = [2, 2];
-        const d: Vertex = [3, 3];
+        const a = vertexPositionToName({ x: 0, y: 0 });
+        const b = vertexPositionToName({ x: 1, y: 1 });
+        const c = vertexPositionToName({ x: 2, y: 2 });
+        const d = vertexPositionToName({ x: 3, y: 3 });
         const graph = implementingClass([a, b, c, d]);
         const weight = 1;
 

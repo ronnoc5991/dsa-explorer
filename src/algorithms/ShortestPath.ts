@@ -1,13 +1,36 @@
-import { Vertex } from "@/data-structures/Vertex";
-import { Graph } from "@/data-structures/Graph";
+import { Graph } from "../data-structures/Graph";
+import { VertexName, vertexNameToPosition } from "../data-structures/Vertex";
 
 interface ShortestPathAlgorithm {
-  findShortestPath(start: Vertex, end: Vertex): Array<Vertex> | null;
+  findShortestPath(
+    start: VertexName,
+    end: VertexName
+  ): Array<VertexName> | null;
   // reconstructPath(end: Vertex): Array<Vertex> | null;
   // getMinDistanceToVertex(u: Vertex): number; // the min distance at this point in time?
 }
 
-// TODO: think about how to visualize this... one step at a time
+// what can happen to a node?
+// it can be a node...
+// it can be turned off (to allow the user to create unique graphs)
+// it can be being expanded (the algo is expanding it at the moment)
+// can also visualize edges... and show which ones are being expanded at the moment
+// it can be 'visited'
+// it can be a part of the final path
+// it can have a shortest distance from the start...
+// it can have an estimated distance to the end?
+// it can be the 'goal'
+// it can be the 'start'
+
+// be able to query all of these things from the outside...
+// then in an raf frame, update the things on the canvas?
+// mutation + raf loop = rendering
+// react not involved here?
+
+// then each algo would have a 'step' function?
+// that we would also call as a part of the raf loop?
+// the algo would have to call its own step function at an interval...
+// separate from our rendering raf loop
 function search({
   graph,
   start,
@@ -16,25 +39,25 @@ function search({
   cameFrom,
 }: {
   graph: Graph;
-  start: Vertex;
-  end: Vertex;
-  h: (u: Vertex, end: Vertex) => number;
-  cameFrom: Map<Vertex, Vertex | null>;
+  start: VertexName;
+  end: VertexName;
+  h: (u: VertexName, end: VertexName) => number;
+  cameFrom: Map<VertexName, VertexName | null>;
 }): boolean {
   const q = [start];
   const visited = new Set();
-  const fScore: Map<Vertex, number> = new Map();
-  const gScore: Map<Vertex, number> = new Map();
+  const fScore: Map<VertexName, number> = new Map();
+  const gScore: Map<VertexName, number> = new Map();
 
   // could have the algo class do this? and pass the stateful parts in?
-  graph.getVertices().forEach((v) => {
+  graph.getVerticesNames().forEach((v) => {
     cameFrom.set(v, null);
     gScore.set(v, v === start ? 0 : Infinity);
     fScore.set(v, v === start ? h(v, end) : Infinity);
   });
 
   while (q.length) {
-    const current = q.shift() as Vertex;
+    const current = q.shift() as VertexName;
 
     if (current === end) return true; // we have updated all of the state... it can be reconstructed now...
 
@@ -57,16 +80,20 @@ function search({
       }
     });
 
+    // TODO: how does this work with Dijkstra? doesn't this mean we do not sort the things at all?
     q.sort((a, b) => (fScore.get(a) || Infinity) - (fScore.get(b) || Infinity));
   }
 
   return false; // no path found
 }
 
-function reconstructPath(end: Vertex, cameFrom: Map<Vertex, Vertex | null>) {
-  const pathInReverse = [];
+function reconstructPath(
+  end: VertexName,
+  cameFrom: Map<VertexName, VertexName | null>
+) {
+  const pathInReverse: Array<VertexName> = [];
 
-  let curr: Vertex | null = end;
+  let curr: VertexName | null = end;
 
   while (curr) {
     pathInReverse.push(curr);
@@ -83,8 +110,11 @@ export class Dijkstra implements ShortestPathAlgorithm {
     this.graph = graph;
   }
 
-  findShortestPath(start: Vertex, end: Vertex): Array<Vertex> | null {
-    const cameFrom: Map<Vertex, Vertex | null> = new Map();
+  findShortestPath(
+    start: VertexName,
+    end: VertexName
+  ): Array<VertexName> | null {
+    const cameFrom: Map<VertexName, VertexName | null> = new Map();
     const pathExists = search({
       graph: this.graph,
       end,
@@ -108,17 +138,23 @@ export class AStar {
     this.graph = graph;
   }
 
-  findShortestPath(start: Vertex, end: Vertex): Array<Vertex> | null {
-    const cameFrom: Map<Vertex, Vertex | null> = new Map();
+  findShortestPath(
+    start: VertexName,
+    end: VertexName
+  ): Array<VertexName> | null {
+    const cameFrom: Map<VertexName, VertexName | null> = new Map();
     const pathExists = search({
       graph: this.graph,
       end,
       start,
-      h: (v, end) =>
-        Math.sqrt(
-          Math.pow(Math.abs(v[0] - end[0]), 2) +
-            Math.pow(Math.abs(v[1] - end[1]), 2)
-        ), // the hypotenuse
+      h: (v, end) => {
+        const startPosition = vertexNameToPosition(v);
+        const endPosition = vertexNameToPosition(end);
+        return Math.sqrt(
+          Math.pow(Math.abs(startPosition.x - endPosition.x), 2) +
+            Math.pow(Math.abs(startPosition.y - endPosition.y), 2)
+        ); // the hypotenuse
+      },
       cameFrom,
     });
 

@@ -1,11 +1,11 @@
-import { Vertex } from "./Vertex";
+import { VertexName } from "./Vertex";
 
 class Edge {
-  from: Vertex;
-  to: Vertex;
+  from: VertexName;
+  to: VertexName;
   weight: number;
 
-  constructor(from: Vertex, to: Vertex, weight: number) {
+  constructor(from: VertexName, to: VertexName, weight: number) {
     this.from = from;
     this.to = to;
     this.weight = weight;
