@@ -1,11 +1,13 @@
 import { describe, expect, it } from "vitest";
 import { AdjacencyList, Graph } from "../data-structures/Graph";
-import { vertexPositionToName } from "../data-structures/Vertex";
+import { VertexName, vertexPositionToName } from "../data-structures/Vertex";
 import { Dijkstra, AStar } from "./ShortestPath";
 
 const shortestPathAlgorithms = {
-  Dijkstra: (graph: Graph) => new Dijkstra(graph),
-  AStar: (graph: Graph) => new AStar(graph),
+  AStar: (graph: Graph, start: VertexName, end: VertexName) =>
+    new AStar(graph, start, end),
+  Dijkstra: (graph: Graph, start: VertexName, end: VertexName) =>
+    new Dijkstra(graph, start, end),
 };
 
 Object.entries(shortestPathAlgorithms).forEach(([algoName, implementation]) => {
@@ -16,9 +18,9 @@ Object.entries(shortestPathAlgorithms).forEach(([algoName, implementation]) => {
       const c = vertexPositionToName({ x: 2, y: 2 });
       const graph = new AdjacencyList([a, b, c]);
 
-      const algo = implementation(graph);
+      const algo = implementation(graph, a, c);
 
-      const answer = algo.findShortestPath(a, c);
+      const answer = algo.findShortestPath();
 
       expect(answer).toBe(null);
     });
@@ -31,9 +33,9 @@ Object.entries(shortestPathAlgorithms).forEach(([algoName, implementation]) => {
       graph.addEdge(a, b, 1);
       graph.addEdge(b, c, 1);
 
-      const algo = implementation(graph);
+      const algo = implementation(graph, a, c);
 
-      const answer = algo.findShortestPath(a, c);
+      const answer = algo.findShortestPath();
 
       expect(answer).toStrictEqual([a, b, c]);
     });
@@ -49,9 +51,9 @@ Object.entries(shortestPathAlgorithms).forEach(([algoName, implementation]) => {
       graph.addEdge(c, d, 1);
       graph.addEdge(a, d, 4);
 
-      const algo = implementation(graph);
+      const algo = implementation(graph, a, d);
 
-      const answer = algo.findShortestPath(a, d);
+      const answer = algo.findShortestPath();
 
       expect(answer).toStrictEqual([a, b, c, d]);
     });
