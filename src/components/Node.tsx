@@ -24,7 +24,6 @@ export default function Node({ state, onClick }: NodeProps) {
           transform: state === "disabled" ? "scale(.8)" : "scale(1)",
           transition: "transform 500ms cubic-bezier(0.18, 0.89, 0.32, 1.35)",
           border: state === "in-path" ? "1px solid green" : "1px solid white",
-          borderRadius: "50%",
           opacity: state === "disabled" ? "50%" : "100%",
         }}
       />
