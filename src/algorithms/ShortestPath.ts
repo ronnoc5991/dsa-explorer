@@ -1,3 +1,4 @@
+import wait from "../utils/wait";
 import { Graph } from "../data-structures/Graph";
 import { VertexName, vertexNameToPosition } from "../data-structures/Vertex";
 
@@ -16,58 +17,71 @@ type Heuristic = (u: VertexName, v: VertexName) => number;
 // 4. ensure that this thing is still testable...
 // 5. just visualize one thing at a time for now
 
-class ShortestPathAlgorithm {
+export class ShortestPathAlgorithm {
   private graph: Graph;
   private start: VertexName;
   private end: VertexName;
   private h: Heuristic;
-  private state: {
-    openSet: OpenSet;
-    visitedSet: VisitedSet;
-    fScore: FScore;
-    gScore: GScore;
-    cameFrom: CameFrom;
-  };
+  private openSet: OpenSet;
+  private visitedSet: VisitedSet;
+  private fScore: FScore;
+  private gScore: GScore;
+  private cameFrom: CameFrom;
+  private vertexBeingExpanded: VertexName | null = null;
+  private vertexBeingEvaluated: VertexName | null = null;
+  private stepDuration: number;
 
-  constructor(graph: Graph, start: VertexName, end: VertexName, h: Heuristic) {
+  constructor(
+    graph: Graph,
+    start: VertexName,
+    end: VertexName,
+    h: Heuristic,
+    stepDuration: number
+  ) {
     this.graph = graph;
     this.start = start;
     this.end = end;
     this.h = h;
-    this.state = this.initializeState(graph, start, end, h);
+    const { cameFrom, fScore, gScore, openSet, visitedSet } =
+      this.initializeState(graph, start, end, h);
+    this.cameFrom = cameFrom;
+    this.fScore = fScore;
+    this.gScore = gScore;
+    this.openSet = openSet;
+    this.visitedSet = visitedSet;
+    this.stepDuration = stepDuration;
+  }
+
+  // TODO: make these return read only versions?
+  public getVertexBeingExpanded(): VertexName | null {
+    return this.vertexBeingExpanded;
+  }
+
+  public getVertexBeingEvaluated(): VertexName | null {
+    return this.vertexBeingEvaluated;
   }
 
   public getOpenSet(): Array<VertexName> {
-    return this.state.openSet;
+    return this.openSet;
   }
 
   public getVisitedSet(): Array<VertexName> {
-    return Array.from(this.state.visitedSet);
+    return Array.from(this.visitedSet);
   }
-  // it might makes sense to expose functions like this so that the renderer doesn't actually have to know the 'shape' of the state...
   // TODO: does this make sense to return Infinity if it does not exist in the table?
   public getVertexGScore(v: VertexName): number {
-    return this.state.gScore.get(v) || Infinity;
+    return this.gScore.get(v) || Infinity;
   }
 
   public getVertexFScore(v: VertexName): number {
-    return this.state.fScore.get(v) || Infinity;
+    return this.fScore.get(v) || Infinity;
   }
 
-  public findShortestPath(): Array<VertexName> | null {
-    const pathExists = this.search({
-      graph: this.graph,
-      end: this.end,
-      h: this.h,
-      cameFrom: this.state.cameFrom,
-      fScore: this.state.fScore,
-      gScore: this.state.gScore,
-      openSet: this.state.openSet,
-      visitedSet: this.state.visitedSet,
-    });
+  public async findShortestPath(): Promise<Array<VertexName> | null> {
+    const pathExists = await this.search();
 
     if (pathExists) {
-      return this.reconstructPath(this.end, this.state.cameFrom);
+      return this.reconstructPath(this.end, this.cameFrom);
     } else {
       return null;
     }
@@ -100,56 +114,60 @@ class ShortestPathAlgorithm {
     };
   }
 
-  private search({
-    graph,
-    end,
-    h,
-    cameFrom,
-    openSet,
-    visitedSet,
-    fScore,
-    gScore,
-  }: {
-    graph: Graph;
-    end: VertexName;
-    h: Heuristic;
-    cameFrom: CameFrom;
-    openSet: OpenSet;
-    visitedSet: VisitedSet;
-    fScore: FScore;
-    gScore: GScore;
-  }): boolean {
-    while (openSet.length) {
-      const current = openSet.shift() as VertexName;
-
-      if (current === end) return true; // we have updated all of the state... it can be reconstructed now...
-
-      if (visitedSet.has(current)) continue;
-      visitedSet.add(current);
-
-      graph.getNeighbors(current).forEach((neighbor) => {
-        // get the existing gScore for this one
-        const g = gScore.get(neighbor) ?? Infinity;
-        // get the newGScore for this one
-        const potentialG =
-          (gScore.get(current) ?? Infinity) +
-          graph.getEdgeWeight(current, neighbor);
-
-        if (potentialG < g) {
-          cameFrom.set(neighbor, current);
-          gScore.set(neighbor, potentialG);
-          fScore.set(neighbor, potentialG + h(neighbor, end));
-          if (!visitedSet.has(neighbor)) openSet.push(neighbor);
-        }
-      });
-
-      // TODO: how does this work with Dijkstra? doesn't this mean we do not sort the things at all?
-      openSet.sort(
-        (a, b) => (fScore.get(a) || Infinity) - (fScore.get(b) || Infinity)
+  private async evaluateVertex() {
+    const g =
+      this.gScore.get(this.vertexBeingEvaluated as VertexName) ?? Infinity;
+    // get the newGScore for this one
+    const potentialG =
+      (this.gScore.get(this.vertexBeingExpanded as VertexName) ?? Infinity) +
+      this.graph.getEdgeWeight(
+        this.vertexBeingExpanded as VertexName,
+        this.vertexBeingEvaluated as VertexName
       );
+
+    if (potentialG < g) {
+      this.cameFrom.set(
+        this.vertexBeingEvaluated as VertexName,
+        this.vertexBeingExpanded
+      );
+      this.gScore.set(this.vertexBeingEvaluated as VertexName, potentialG);
+      this.fScore.set(
+        this.vertexBeingEvaluated as VertexName,
+        potentialG + this.h(this.vertexBeingEvaluated as VertexName, this.end)
+      );
+      if (!this.visitedSet.has(this.vertexBeingEvaluated as VertexName))
+        this.openSet.push(this.vertexBeingEvaluated as VertexName);
+    }
+  }
+
+  private async search(): Promise<boolean> {
+    while (this.openSet.length) {
+      this.sortOpenSet();
+      this.vertexBeingExpanded = this.openSet.shift() as VertexName;
+
+      if (this.vertexBeingExpanded === this.end) return true;
+
+      await wait(this.stepDuration);
+
+      const neighbors = this.graph.getNeighbors(this.vertexBeingExpanded);
+
+      while (neighbors.length) {
+        this.vertexBeingEvaluated = neighbors.shift() as VertexName; // this could be dangerous if it ever directly mutates the graph...
+        await wait(this.stepDuration);
+        await this.evaluateVertex();
+        this.vertexBeingEvaluated = null;
+      }
     }
 
     return false; // no path found
+  }
+
+  private sortOpenSet() {
+    // TODO: how does this work with Dijkstra? doesn't this mean we do not sort the things at all?
+    this.openSet.sort(
+      (a, b) =>
+        (this.fScore.get(a) || Infinity) - (this.fScore.get(b) || Infinity)
+    );
   }
 
   private reconstructPath(
@@ -202,14 +220,16 @@ class ShortestPathAlgorithm {
 // we instantiate the algo and let it loose
 // then we run an raf loop that constantly reads the state of the algorithm and renders the things
 
-// that means for testing purposes... could make the thing async... and await it in the tests... and also in the app?
-// would also want to pass in an interval? would want it to run pretty quickly during testing... and slowly in the app...
-
 export class Dijkstra extends ShortestPathAlgorithm {
   private static h: Heuristic = () => 0;
 
-  constructor(graph: Graph, start: VertexName, end: VertexName) {
-    super(graph, start, end, Dijkstra.h);
+  constructor(
+    graph: Graph,
+    start: VertexName,
+    end: VertexName,
+    stepDuration: number
+  ) {
+    super(graph, start, end, Dijkstra.h, stepDuration);
   }
 }
 
@@ -223,7 +243,12 @@ export class AStar extends ShortestPathAlgorithm {
     ); // the hypotenuse
   };
 
-  constructor(graph: Graph, start: VertexName, end: VertexName) {
-    super(graph, start, end, AStar.h);
+  constructor(
+    graph: Graph,
+    start: VertexName,
+    end: VertexName,
+    stepDuration: number
+  ) {
+    super(graph, start, end, AStar.h, stepDuration);
   }
 }

@@ -1,0 +1,14 @@
+.accordion {
+  display: flex;
+  flex-direction: column;
+}
+
+.accordion-body {
+  height: 0px;
+  transition: height 3000ms ease-in-out;
+  overflow: hidden;
+}
+
+.accordion-body--open {
+  height: auto;
+}

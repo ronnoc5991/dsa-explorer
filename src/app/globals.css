@@ -3,6 +3,12 @@
 :root {
   --background: #ffffff;
   --foreground: #171717;
+
+  --horizontal-padding: 20px;
+
+  --min-target-size: 44px;
+
+  --transition-duration-medium: 300ms;
 }
 
 @theme inline {
