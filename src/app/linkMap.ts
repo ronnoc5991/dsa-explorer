@@ -15,6 +15,10 @@ const ALGORITHMS_PATH = "/algorithms";
 
 const linkMap: LinkMap = {
   dataStructures: {
+    intro: {
+      displayName: "What are data structures?",
+      href: `${DATA_STRUCTURES_PATH}`,
+    },
     graph: {
       displayName: "Graph",
       href: `${DATA_STRUCTURES_PATH}/graph`,
@@ -33,6 +37,10 @@ const linkMap: LinkMap = {
     },
   },
   algorithms: {
+    intro: {
+      displayName: "What are algorithms?",
+      href: `${ALGORITHMS_PATH}`,
+    },
     shortestPath: {
       displayName: "Shortest Path",
       href: `${ALGORITHMS_PATH}/shortest-path`,
